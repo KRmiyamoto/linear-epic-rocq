@@ -33,7 +33,7 @@ Definition fvar := nat.
 
    # Terms:
 
-   A "term" [t] is a "bag" [bag m n P], consisting of a processes [P]. 
+   A "term" [t] is a "bag" [bag m n P], consisting of {a process}? [P]. 
    It binds [m] (fresh) function identifiers and [n] (fresh) resource
    identifiers.
 
@@ -116,6 +116,9 @@ Inductive ws_term : nat -> nat -> term -> Prop :=
     P
     (WS : ws_proc (m' + m) (n' + n) P),
     ws_term m n (bag m' n' P)
+(* A ws term is a ws bag if, forall m n m' n' and proc P that are ws 
+for m'+m funct id and n'+n res id, the term corresponding to the bag
+with m' funct id, n' res id, and proc P is ws...*)
 
 with ws_proc : nat -> nat -> proc -> Prop :=
 | ws_def :
@@ -123,38 +126,45 @@ with ws_proc : nat -> nat -> proc -> Prop :=
     (r : rvar) (HR : r < n)
     (o : oper) (WSO : ws_oper m n o),
     ws_proc m n (def r o)
-
+(* A proc defining r and o is a ws def if, forall m n, ws rvar -- 
+i.e., r < n -- ops ws with m and n, we have ws_proc m n (def r o) *)
 | ws_app :
   forall m n
     (f : fvar) (HF : f < m)
     (r : rvar) (HR : r < n),
     ws_proc m n (app f r)
-
+(* A proc applying f to r is ws if, for all m n, f < m, r < n, we have
+ws_proc m n (app f r) *)
 | ws_par :
   forall m n
     (P1 P2 : proc)
     (WSP1 : ws_proc m n P1)
     (WSP2 : ws_proc m n P2),
     ws_proc m n (par P1 P2)
-            
+(* A par proc is ws if, for all m n, procs P1 P2 ws for m and n, we 
+have ws_proc m n (par P1 P2) *)      
+
 with ws_oper : nat -> nat -> oper -> Prop :=
 | ws_tup :
   forall m n
     (rs : list rvar)
     (HRS : List.Forall (fun x => x < n) rs),
     ws_oper m n (tup rs)
-
+(* An oper is a ws tup if for all m n and lists rs of rvars where each 
+elt is < n, we have ws_oper m n (tup rs)*)
 | ws_bng :
   forall m n
     (f : fvar)
     (HF : f < m),
     ws_oper m n (bng f)
-            
+(* An oper is a ws bng if, for all m n and f < m, we have ws_oper m n (bng f) *)        
 | ws_lam :
   forall m n
     (t : term)
     (WST : ws_term m 1 t),
     ws_oper m n  (lam t).
+(* An oper is a ws lam if, for all m n and terms t that are ws for m and n=1, 
+we have ws_oper m n (lam t) *)
 Set Elimination Schemes.
 
 Scheme ws_term_ind := Induction for ws_term Sort Prop
@@ -162,6 +172,7 @@ Scheme ws_term_ind := Induction for ws_term Sort Prop
                         with ws_oper_ind := Induction for ws_oper Sort Prop.
 
 Combined Scheme ws_tpo_ind from ws_term_ind, ws_proc_ind, ws_oper_ind.
+(* Scheme to generate high-level, possibly mutual, induction tactics... *)
 
 (* Structural Equivalence --------------------------------------------------- *)
 
@@ -278,6 +289,9 @@ Proof.
   - inversion H0. subst.
     inversion H1. subst.
     constructor. eapply H; eauto. 
+(* 'constructor' applies constructors in order, from where? 
+'eapply' behaves like apply but does not fail when it can’t instantiate variables; 
+can introduce existential vars which need to be instantiated later. *)
   - eapply seq_proc_trans; eauto.
   - eapply seq_proc_trans; eauto.
   - eapply seq_proc_trans; eauto.
@@ -355,6 +369,7 @@ Lemma seq_proc_inv_def' : forall P1 P2,
 Proof.
   intros P1 P2 H.
   induction H; intros.
+  (* cases from seq_proc inductive def *)
   - split; intros; exists o; auto.
   - split; intros.
     + apply IHseq_proc in H0. assumption.
@@ -474,6 +489,8 @@ Qed.
    [f]'s, if [D r = 0] then there should be no occurrence of the restricted
    variable in a given scope, and we can immediately "strengthen" the
    context to discard it.
+
+   i.e., "contraction" ?
  *)
 
 Unset Elimination Schemes.
@@ -489,7 +506,11 @@ Inductive wf_term : forall (m n:nat), lctxt m -> lctxt n -> term -> Prop :=
     (UD' : forall x, x < n' -> (D' x) = 2)
     (P : proc)
     (WFP : wf_proc (m' + m) (n' + n) (G' ⊗ G) (D' ⊗ D) P),
-    wf_term m n G D (bag m' n' P)
+     m n G D (bag m' n' P)
+(* A wf term is a wf bag if forall m n G -- map of m deBruijn vars to uses -- 
+D -- map of m deBruijn vars to uses -- there are m' n' G' -- where 
+each var in G' is used exactly once -- D' -- where each var in D' is used exactly 
+twice -- and P, a wf proc w.r.t. m'+m, n'+n and lctxts [G' omult G] and [D' omult D] *)
 
 with wf_proc : forall (m n:nat), lctxt m -> lctxt n -> proc -> Prop :=
 | wf_def :
@@ -536,6 +557,7 @@ with wf_oper : forall (m n:nat), lctxt m -> lctxt n -> oper -> Prop :=
     wf_oper m n (zero m) (zero n) (lam t).
 Set Elimination Schemes.
 
+
 Scheme wf_term_ind := Induction for wf_term Sort Prop
     with wf_proc_ind := Induction for wf_proc Sort Prop
                         with wf_oper_ind := Induction for wf_oper Sort Prop.
@@ -544,7 +566,8 @@ Combined Scheme wf_tpo_ind from wf_term_ind, wf_proc_ind, wf_oper_ind.
 
 (* A helpful tactic for dealing with equivalences of existT terms that
    arise when inverting wf judgments.
- *)
+
+What is this doing exactly? *)
 Ltac existT_eq :=
       repeat match goal with 
       | [H : existT _ _ _ = existT _ _ _ |- _ ] =>
@@ -609,6 +632,7 @@ Proof.
       existT_eq;
       subst.
       rewrite sum_commutative. rewrite (@sum_commutative _ D1 D2).
+      (* @H : explicitly takes implicit arguments *)
       apply wf_par; assumption.
     + inversion H; existT_eq; subst.
       rewrite sum_commutative. rewrite (@sum_commutative _ D1 D2).
