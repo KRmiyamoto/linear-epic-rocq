@@ -2368,6 +2368,55 @@ Definition cut_renaming n (r1 r2 r1' r2':nat) : ren n n :=
             else
               @ren_compose n n nat (rename_var r1 r1') (rename_var r2 r2').
     
+Lemma wf_prim_step_app :
+  forall m m' m'' n n' n'' r r' f P Q (G : lctxt m),
+    wf_term m n G (zero n) (bag m' n'
+                            (par P
+                                (par (def r (lam (bag m'' n'' Q)))
+                                     (par (def r (bng f))
+                                          (app f r'))))) ->
+    wf_term m n G (zero n) (bag (m' + m'') (n' + n'')
+                            (par P
+                                (par (def r (lam (bag m'' n'' Q)))
+                                     (par (def r (bng f))
+                                          (retract_rvar_proc (m' + m'') r' m' (scope_extrude m' m'' n' n'' Q)))))).
+Proof.
+  intros.
+  inversion H; existT_eq; subst; clear H.
+  inversion WFP; existT_eq; subst; clear WFP.
+  inversion WFP2; existT_eq; subst; clear WFP2.
+  inversion WFP0; existT_eq; subst; clear WFP0.
+  inversion WFP3; existT_eq; subst; clear WFP3.
+  inversion WFO; existT_eq; subst; clear WFO.
+  rewrite HG1 in HG0; clear HG1.
+  rewrite HG2 in HG0; clear HG2.
+  rewrite sum_zero_l in HG0.
+  rewrite HG0 in HG; clear HG0.
+
+  rewrite HD3 in HD1; clear HD3.
+  rewrite sum_zero_r in HD1.
+  rewrite HD1 in HD0; clear HD1.
+
+  rewrite HD2 in HD0; clear HD2.
+ 
+  unfold one in HD0.
+  rewrite HD0 in HD; clear HD0.
+  apply sum_app_inv_ctxt in HD.
+  destruct HD as (DA1 & DA2 & DB1 & DB2 & EQ1 & EQ2 & EQ3 & EQ4).
+  assert (DB1 ≡[n] zero n). { apply sum_zero_inv_l_eq in EQ4. assumption. } 
+  assert (DB2 ≡[n] zero n). { apply sum_zero_inv_r_eq in EQ4. assumption. }
+  clear EQ4.
+  rewrite H in EQ1; clear H.
+  rewrite H0 in EQ2; clear H0.
+  rewrite EQ1 in WFP1.
+  
+(* ----------------------------------- *)
+  eapply wf_bag. 
+   
+
+Admitted. 
+
+
 Lemma wf_prim_step_tup :
   forall m m' n n' r r1 r2 r1' r2' P (G : lctxt m),
     wf_term m n G (zero n) (bag m' n' (par P (par (def r (tup r1 r2)) (def r (tup r1' r2'))))) ->
@@ -3015,7 +3064,7 @@ Inductive prim_step : nat -> nat -> term -> term -> Prop :=
     prim_step m n
       (bag m' n' (par P (par (def r (tup r1 r2)) (def r (tup r1' r2')))))
       (bag m' n' (rename_rvar_proc (cut_renaming (n' + n) r1 r2 r1' r2') P))
-      
+
 | step_app :
   forall m m' m'' n n' n'' r r' f P Q,
     let Q' := retract_rvar_proc (m' + m'') r' m' (scope_extrude m' m'' n' n'' Q) in
@@ -3036,9 +3085,6 @@ Inductive  step : nat -> nat -> term -> term -> Prop :=
     t1 ≈t t1' ->
     prim_step m n t1' t2 ->
     step m n t1 t2.
-
-
-
 
 
 (* Canonical forms -- is it needed?  ----------------------------------- *)
