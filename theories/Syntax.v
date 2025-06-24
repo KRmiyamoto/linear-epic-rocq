@@ -1839,7 +1839,7 @@ Definition ren_f_extrude m m' : ren (m + m') (m' + m) :=
     if lt_dec x m' then x + m else (x - m').
 
 Definition scope_extrude m m' n n' Q :=
-    let Q1 := @rename_rvar_proc n (n' + n) (fun x => n + x) Q in
+    let Q1 := @rename_rvar_proc n (n + n') (fun x => n + x) Q in
     let Q2 := @rename_fvar_proc (m + m') (m' + m) (ren_f_extrude m m') Q1 in
     Q2.
 
@@ -2368,6 +2368,11 @@ Definition cut_renaming n (r1 r2 r1' r2':nat) : ren n n :=
             else
               @ren_compose n n nat (rename_var r1 r1') (rename_var r2 r2').
     
+Lemma wf_scope_extrude :
+  forall m m' n n' (G : lctxt m') (D : lctxt n') Q,
+   wf_proc (m' + m) n' (G ⊗ zero m) D Q ->
+   wf_proc (m + m') (n + n') (zero m ⊗ G) (zero n ⊗ D) (scope_extrude m m' n n' Q).
+
 Lemma wf_prim_step_app :
   forall m m' m'' n n' n'' r r' f P Q (G : lctxt m),
     wf_term m n G (zero n) (bag m' n'
@@ -2379,7 +2384,7 @@ Lemma wf_prim_step_app :
                             (par P
                                 (par (def r (lam (bag m'' n'' Q)))
                                      (par (def r (bng f))
-                                          (rename_rvar_proc (rename_var r' 0 _) (scope_extrude m' m'' n' n'' Q)))))).
+                                          (@rename_rvar_proc m'' (m' + m'') (rename_var (n'+ n'') r') (scope_extrude m' m'' n' n'' Q)))))).
 Proof.
   intros.
   inversion H; existT_eq; subst; clear H.
@@ -2390,6 +2395,7 @@ Proof.
   inversion WFO; existT_eq; subst; clear WFO.
   inversion WFP0; existT_eq; subst; clear WFP0.
   inversion WFP2; existT_eq; subst; clear WFP2.
+  inversion WFT; existT_eq; subst; clear WFT.
 
   rewrite HG2 in HG0; clear HG2.
   rewrite sum_zero_l in HG0.
@@ -2407,7 +2413,7 @@ Proof.
 
   unfold one in HD.
 
-  (* ----------------------------------- *)
+  (* --------------------------------------------------------------------------------------------------- *)
   eapply wf_bag with (G := G) (D := (zero n))  (G' := G')(D' := D').
   
   3 : { 
