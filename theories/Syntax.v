@@ -2379,7 +2379,7 @@ Lemma wf_prim_step_app :
                             (par P
                                 (par (def r (lam (bag m'' n'' Q)))
                                      (par (def r (bng f))
-                                          (retract_rvar_proc (m' + m'') r' m' (scope_extrude m' m'' n' n'' Q)))))).
+                                          (rename_rvar_proc (rename_var r' 0 _) (scope_extrude m' m'' n' n'' Q)))))).
 Proof.
   intros.
   inversion H; existT_eq; subst; clear H.
@@ -2388,30 +2388,36 @@ Proof.
   inversion WFP0; existT_eq; subst; clear WFP0.
   inversion WFP3; existT_eq; subst; clear WFP3.
   inversion WFO; existT_eq; subst; clear WFO.
-  rewrite HG1 in HG0; clear HG1.
+  inversion WFP0; existT_eq; subst; clear WFP0.
+  inversion WFP2; existT_eq; subst; clear WFP2.
+
   rewrite HG2 in HG0; clear HG2.
   rewrite sum_zero_l in HG0.
-  rewrite HG0 in HG; clear HG0.
-
   rewrite HD3 in HD1; clear HD3.
   rewrite sum_zero_r in HD1.
-  rewrite HD1 in HD0; clear HD1.
-
+  rewrite HG3 in HG1; clear HG3.
+  rewrite sum_zero_r in HG1.
+  rewrite HG1 in HG0; clear HG1.
+  rewrite HG0 in HG; clear HG0.
+  rewrite HD4 in HD2; clear HD4.
+  rewrite HD5 in HD2; clear HD5. 
   rewrite HD2 in HD0; clear HD2.
- 
-  unfold one in HD0.
+  rewrite HD1 in HD0; clear HD1.
   rewrite HD0 in HD; clear HD0.
-  apply sum_app_inv_ctxt in HD.
-  destruct HD as (DA1 & DA2 & DB1 & DB2 & EQ1 & EQ2 & EQ3 & EQ4).
-  assert (DB1 ≡[n] zero n). { apply sum_zero_inv_l_eq in EQ4. assumption. } 
-  assert (DB2 ≡[n] zero n). { apply sum_zero_inv_r_eq in EQ4. assumption. }
-  clear EQ4.
-  rewrite H in EQ1; clear H.
-  rewrite H0 in EQ2; clear H0.
-  rewrite EQ1 in WFP1.
+
+  unfold one in HD.
+
+  (* ----------------------------------- *)
+  eapply wf_bag with (G := G) (D := (zero n))  (G' := G')(D' := D').
   
-(* ----------------------------------- *)
-  eapply wf_bag. 
+  3 : { 
+    eapply wf_par with (G1 := G1) (G2 := G4) (D1 := D1) 
+                       (D2 := ((n' + n) [r ↦ 1] ⨥ (((n' + n) [r ↦ 1] ⨥ D'1) ⨥ (n' + n) [r' ↦ 1]))).
+   
+  apply wf_lam. 
+
+  }
+
    
 
 Admitted. 
